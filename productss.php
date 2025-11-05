@@ -1,119 +1,177 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <!-- Required meta tags -->
-    <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, shrink-to-fit=no"
-    />
+<html lang="vi">
 
-    <!-- Bootstrap CSS -->
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css"
-      integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
-      crossorigin="anonymous"
-    />
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="assets/font-awesome-pro-v6-6.2.0/css/all.min.css" />
+  <link rel="stylesheet" href="assets/css/base.css" />
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <title>Đơn hàng của tôi - Đặc sản 3 miền</title>
+  <link href="./assets/img/logo.png" rel="icon" type="image/x-icon" />
+  <style>
+    .inner-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 10px;
+    }
 
-    <link
-      rel="stylesheet"
-      href="assets/font-awesome-pro-v6-6.2.0/css/all.min.css"
-    />
-    <link rel="stylesheet" href="assets/css/base.css" />
-    <link rel="stylesheet" href="assets/css/style.css" />
+    .inner-desc {
+      color: #666;
+      margin-bottom: 20px;
+    }
 
-    <title>Đặc sản 3 miền</title>
-    <link href="./assets/img/logo.png" rel="icon" type="image/x-icon" />
-  </head>
+    .table th {
+      background: #f8f9fa;
+      text-align: center;
+    }
 
-  <body>
+    .table td {
+      vertical-align: middle;
+    }
 
-   <?php
-  include_once "includes/headerlogin.php";
-  ?>
+    .status-chua {
+      color: #dc3545;
+      font-weight: 600;
+    }
 
+    .status-xacnhan {
+      color: #ffc107;
+      font-weight: 600;
+    }
 
-    <!-- products -->
+    .status-giao {
+      color: #28a745;
+      font-weight: 600;
+    }
 
-    <div class="products">
-      <div class="container">
-        <form action="">
-          <div class="row">
-            <div class="col-xl-12">
-              <div class="inner-title">Quản lý đơn hàng của bạn</div>
-              <div class="inner-desc">
-                Xem chi tiết, trạng thái của những đơn hàng đã đặt.
-              </div>
-            </div>
+    .status-huy {
+      color: #6c757d;
+      font-weight: 600;
+      text-decoration: line-through;
+    }
+
+    .no-order {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+      font-size: 18px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <?php include_once "includes/headerlogin.php"; ?>
+
+  <div class="products">
+    <div class="container">
+      <div class="row">
+        <div class="col-xl-12">
+          <div class="inner-title">Quản lý đơn hàng của bạn</div>
+          <div class="inner-desc">
+            Xem chi tiết, trạng thái của những đơn hàng đã đặt.
           </div>
-          <div class="inner-menu">
-            <table class="table table-bordered">
-  <tr>
-    <th>Đơn hàng</th>
-    <th>Ngày</th>
-    <th>Địa chỉ</th>
-    <th>Giá trị đơn hàng</th>
-    <th>PT thanh toán</th>
-    <th>Trạng thái</th>
-  </tr>
-  <?php
-  include "connect.php";
-  if (isset($_SESSION['makh'])) {
-      $makh = $_SESSION['makh'];
-      $sql = "SELECT madh, ngaytao, diachi, tongtien, phuongthuc ,trangthai 
-              FROM donhang 
-              WHERE makh = ? 
-              ORDER BY ngaytao DESC";
-      $stmt = $conn->prepare($sql);
-      $stmt->bind_param("i", $makh);
-      $stmt->execute();
-      $result = $stmt->get_result();
-  
-      while ($row = $result->fetch_assoc()) {
-          echo '<tr>
-                  <td><a class="active" href="chitiet.php?madh=' . $row['madh'] . '">DH' . $row['madh'] . '</a></td>
-                  <td>' . date("d-m-Y", strtotime($row['ngaytao'])) . '</td>
-                  <td>' . htmlspecialchars($row['diachi']) . '</td>
-                  <td>' . number_format($row['tongtien'], 0, ',', '.') . '₫</td>
-                  <td>' . htmlspecialchars($row['phuongthuc']) . '</td>
-                  <td>' . htmlspecialchars($row['trangthai']) . '</td>
-                </tr>';
-      }
-  } else {
-      echo '<tr><td colspan="6">Bạn cần đăng nhập để xem đơn hàng.</td></tr>';
-  }
-  ?>
-</table>
+        </div>
+      </div>
 
-          </div>
-        </form>
+      <div class="inner-menu">
+        <table class="table table-bordered table-hover">
+          <thead>
+            <tr>
+              <th>Đơn hàng</th>
+              <th>Ngày đặt</th>
+              <th>Địa chỉ</th>
+              <th>Giá trị</th>
+              <th>Thanh toán</th>
+              <th>Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php
+            include "connect.php";
+            if (!isset($_SESSION['makh'])) {
+              echo '<tr><td colspan="6" class="no-order">
+                                <i class="fas fa-sign-in-alt fa-2x mb-3"></i><br>
+                                Bạn cần <a href="login.php">đăng nhập</a> để xem đơn hàng.
+                              </td></tr>';
+            } else {
+              $makh = $_SESSION['makh'];
+              $sql = "SELECT 
+                                    MA_DH,
+                                    NGAY_TAO,
+                                    DIA_CHI,
+                                    TONG_TIEN,
+                                    PHUONG_THUC,
+                                    TINH_TRANG
+                                FROM donhang 
+                                WHERE MA_KH = ? 
+                                ORDER BY NGAY_TAO DESC";
+
+              $stmt = $conn->prepare($sql);
+              if (!$stmt) {
+                echo '<tr><td colspan="6" class="text-danger">Lỗi hệ thống. Vui lòng thử lại sau.</td></tr>';
+              } else {
+                $stmt->bind_param("i", $makh);
+                $stmt->execute();
+                $result = $stmt->get_result();
+
+                if ($result->num_rows == 0) {
+                  echo '<tr><td colspan="6" class="no-order">
+                                        <i class="fas fa-box-open fa-2x mb-3"></i><br>
+                                        Bạn chưa có đơn hàng nào.
+                                      </td></tr>';
+                } else {
+                  while ($row = $result->fetch_assoc()) {
+                    $ngay = $row['NGAY_TAO'] ? date("d-m-Y H:i", strtotime($row['NGAY_TAO'])) : 'Chưa xác định';
+                    $tongtien = number_format($row['TONG_TIEN'], 0, ',', '.');
+                    $trangthai = $row['TINH_TRANG'];
+                    $class = '';
+                    switch ($trangthai) {
+                      case 'Chưa xác nhận':
+                        $class = 'status-chua';
+                        break;
+                      case 'Đã xác nhận':
+                        $class = 'status-xacnhan';
+                        break;
+                      case 'Đã giao thành công':
+                        $class = 'status-giao';
+                        break;
+                      case 'Đã hủy đơn':
+                        $class = 'status-huy';
+                        break;
+                    }
+                    echo '<tr>
+                                        <td><a class="font-weight-bold text-primary" href="chitiet.php?madh=' . $row['MA_DH'] . '">
+                                            DH' . sprintf("%04d", $row['MA_DH']) . '
+                                            <i class="fas fa-external-link-alt fa-xs"></i>
+                                        </a></td>
+                                        <td class="text-center">' . $ngay . '</td>
+                                        <td>' . htmlspecialchars($row['DIA_CHI']) . '</td>
+                                        <td class="font-weight-bold text-danger">' . $tongtien . '₫</td>
+                                        <td>' . htmlspecialchars($row['PHUONG_THUC']) . '</td>
+                                        <td class="' . $class . '">' . htmlspecialchars($trangthai) . '</td>
+                                    </tr>';
+                  }
+                }
+                $stmt->close();
+              }
+            }
+            ?>
+          </tbody>
+        </table>
       </div>
     </div>
+  </div>
 
-    <!-- End products -->
+  <?php include_once "includes/footer.php"; ?>
 
-       <?php
-  include_once "includes/footer.php";
-  ?>
+  <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js"></script>
+  <script src="assets/js/main.js"></script>
+</body>
 
-
-    <script
-      src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
-      integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js"
-      integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js"
-      integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
-      crossorigin="anonymous"
-    ></script>
-
-    <script src="assets/js/main.js"></script>
-  </body>
 </html>
