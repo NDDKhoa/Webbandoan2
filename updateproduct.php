@@ -1,70 +1,69 @@
 <?php
-include "connect.php"; // Kết nối database
+include "connect.php";
 
-// Debug: Print form data
-echo "<pre>";
-print_r($_FILES);
-print_r($_POST);
-echo "</pre>";
-
-// Kiểm tra xem có dữ liệu từ form không
-if (isset($_POST['id']) && isset($_POST['Name']) && isset($_POST['Price']) && isset($_POST['Describtion']) && isset($_POST['Type']) && isset($_POST['Visible'])) {
+// Kiểm tra dữ liệu gửi từ form
+if (isset($_POST['id'], $_POST['Name'], $_POST['Price'], $_POST['Describtion'], $_POST['Type'], $_POST['Visible'])) {
     $id = intval($_POST['id']);
     $name = mysqli_real_escape_string($conn, $_POST['Name']);
-    // Lọc dấu chấm và giữ nguyên giá trị số
-    $price = (double)str_replace('.', '', $_POST['Price']); // Chỉ bỏ dấu chấm, không chia
+    $price = (int)str_replace('.', '', $_POST['Price']); // Bỏ dấu chấm ngăn cách
     $desc = mysqli_real_escape_string($conn, $_POST['Describtion']);
     $type = mysqli_real_escape_string($conn, $_POST['Type']);
-    $visible = intval($_POST['Visible']); // Lấy giá trị Visible (0 hoặc 1)
+    $visible = intval($_POST['Visible']); // 1 = đang bán, 0 = ngừng
 
-    // Kiểm tra xem có hình ảnh mới không
+    // Xử lý ảnh
     if (isset($_FILES['Images']) && $_FILES['Images']['error'] == 0) {
         $image = $_FILES['Images'];
         $image_name = time() . "_" . basename($image['name']);
         $target_dir = "assets/img/products/";
         $target_file = $target_dir . $image_name;
 
-        // Kiểm tra file có phải là hình ảnh không
+        // Kiểm tra file có phải hình ảnh không
         $check = getimagesize($image['tmp_name']);
         if ($check !== false) {
             if (move_uploaded_file($image['tmp_name'], $target_file)) {
-                $image_path = $target_file; // Đường dẫn ảnh mới
+                $image_path = $target_file;
             } else {
-                echo "Lỗi khi tải hình ảnh lên.";
+                echo "❌ Lỗi khi tải hình ảnh lên.";
                 exit();
             }
         } else {
-            echo "Tệp không phải là hình ảnh.";
+            echo "❌ Tệp không phải là hình ảnh.";
             exit();
         }
     } else {
-        // Nếu không có hình ảnh mới, sử dụng hình ảnh cũ
-        $sql = "SELECT Image FROM sanpham WHERE ID = ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("i", $id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-
-        if ($result && $row = $result->fetch_assoc()) {
-            $image_path = $row['Image']; // Dùng lại đường dẫn hình ảnh cũ
+        // Nếu không có ảnh mới → lấy lại ảnh cũ
+        $sql_old = "SELECT HINH_ANH FROM sanpham WHERE MA_SP = ?";
+        $stmt_old = $conn->prepare($sql_old);
+        $stmt_old->bind_param("i", $id);
+        $stmt_old->execute();
+        $result_old = $stmt_old->get_result();
+        if ($result_old && $row_old = $result_old->fetch_assoc()) {
+            $image_path = $row_old['HINH_ANH'];
         } else {
-            echo "Không tìm thấy sản phẩm!";
+            echo "❌ Không tìm thấy sản phẩm.";
             exit();
         }
+        $stmt_old->close();
     }
 
-    // Cập nhật dữ liệu vào database với Prepared Statements
-    $stmt = $conn->prepare("UPDATE sanpham SET Name = ?, Price = ?, Describtion = ?, Type = ?, Image = ?, Visible = ? WHERE ID = ?");
-    $stmt->bind_param("sdsssii", $name, $price, $desc, $type, $image_path, $visible, $id);
+    // Cập nhật dữ liệu đúng cột trong DB
+    $stmt = $conn->prepare("
+        UPDATE sanpham 
+        SET TEN_SP = ?, GIA_CA = ?, MO_TA = ?, MA_LOAISP = ?, HINH_ANH = ?, TINH_TRANG = ? 
+        WHERE MA_SP = ?
+    ");
+    $stmt->bind_param("sisssii", $name, $price, $desc, $type, $image_path, $visible, $id);
+
     if ($stmt->execute()) {
-        header("Location: adminproduct.php"); // Chuyển hướng về trang quản lý sản phẩm
+        header("Location: adminproduct.php");
         exit();
     } else {
-        echo "Lỗi khi cập nhật dữ liệu: " . $stmt->error;
+        echo "❌ Lỗi khi cập nhật dữ liệu: " . $stmt->error;
     }
+
     $stmt->close();
 } else {
-    echo "Dữ liệu không hợp lệ!";
+    echo "⚠️ Dữ liệu không hợp lệ!";
     echo "<pre>";
     print_r($_POST);
     print_r($_FILES);

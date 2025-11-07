@@ -8,38 +8,38 @@ $endDate = isset($_POST['endDate']) ? mysqli_real_escape_string($conn, $_POST['e
 $province = isset($_POST['province']) ? mysqli_real_escape_string($conn, $_POST['province']) : '';
 $district = isset($_POST['district']) ? mysqli_real_escape_string($conn, $_POST['district']) : '';
 
-$sql = "SELECT dh.madh, dh.makh, dh.ngaytao, dh.tongtien, dh.trangthai, kh.tenkh 
+$sql = "SELECT dh.MA_DH, dh.MA_KH, dh.NGAY_TAO, dh.TONG_TIEN, dh.TINH_TRANG, kh.TEN_KH 
         FROM donhang dh 
-        JOIN khachhang kh ON dh.makh = kh.makh 
+        JOIN khachhang kh ON dh.MA_KH = kh.MA_KH 
         WHERE 1=1";
 
 if ($status) {
-    $sql .= " AND dh.trangthai = '$status'";
+    $sql .= " AND dh.TINH_TRANG = '$status'";
 }
 if ($orderId) {
-    $sql .= " AND dh.madh = $orderId";
+    $sql .= " AND dh.MA_DH = $orderId";
 }
 if ($startDate) {
-    $sql .= " AND DATE(dh.ngaytao) >= '$startDate'";
+    $sql .= " AND DATE(dh.NGAY_TAO) >= '$startDate'";
 }
 if ($endDate) {
-    $sql .= " AND DATE(dh.ngaytao) <= '$endDate'";
+    $sql .= " AND DATE(dh.NGAY_TAO) <= '$endDate'";
 }
 if ($district && $province) {
-    $sql .= " AND dh.diachi LIKE '%$district%$province%'";
+    $sql .= " AND dh.DIA_CHI LIKE '%$district%$province%'";
 } elseif ($province) {
-    $sql .= " AND dh.diachi LIKE '%$province%'";
+    $sql .= " AND dh.DIA_CHI LIKE '%$province%'";
 }
 
 $result = mysqli_query($conn, $sql);
 
 if (mysqli_num_rows($result) > 0) {
     while ($row = mysqli_fetch_assoc($result)) {
-        $madh = "DH" . $row['madh'];
-        $ngaydat = date('d/m/Y', strtotime($row['ngaytao']));
-        $tongtien = number_format((int)$row['tongtien'], 0, ',', '.') . " ₫";
+        $madh = "DH" . $row['MA_DH'];
+        $ngaydat = date('d/m/Y', strtotime($row['NGAY_TAO']));
+        $tongtien = number_format((int)$row['TONG_TIEN'], 0, ',', '.') . " ₫";
         $status_class = '';
-        switch ($row['trangthai']) {
+        switch ($row['TINH_TRANG']) {
             case 'Chưa xác nhận':
                 $status_class = 'status-no-complete';
                 break;
@@ -56,12 +56,12 @@ if (mysqli_num_rows($result) > 0) {
 ?>
         <tr>
             <td><?php echo $madh; ?></td>
-            <td><?php echo htmlspecialchars($row['tenkh']); ?></td>
+            <td><?php echo htmlspecialchars($row['TEN_KH']); ?></td>
             <td><?php echo $ngaydat; ?></td>
             <td><?php echo $tongtien; ?></td>
-            <td><span class="<?php echo $status_class; ?>"><?php echo $row['trangthai']; ?></span></td>
+            <td><span class="<?php echo $status_class; ?>"><?php echo $row['TINH_TRANG']; ?></span></td>
             <td class="control">
-                <a href="adminchitiet.php?madh=<?php echo $row['madh']; ?>" class="btn-detail">
+                <a href="adminchitiet.php?madh=<?php echo $row['MA_DH']; ?>" class="btn-detail">
                     <i class="fa-regular fa-eye"></i> Chi tiết
                 </a>
             </td>

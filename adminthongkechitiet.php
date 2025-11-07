@@ -3,7 +3,7 @@ session_start();
 
 // Database connection
 try {
-    $pdo = new PDO("mysql:host=127.0.0.1;dbname=webbandoan2;charset=utf8", "root", "");
+    $pdo = new PDO("mysql:host=127.0.0.1;dbname=webbandoan5;charset=utf8", "root", "");
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
     die("Connection failed: " . $e->getMessage());
@@ -24,7 +24,7 @@ if ($customerId <= 0) {
 }
 
 // Fetch customer information
-$sql_customer = "SELECT tenkh FROM khachhang WHERE makh = :customerId";
+$sql_customer = "SELECT TEN_KH FROM khachhang WHERE MA_KH = :customerId";
 $stmt_customer = $pdo->prepare($sql_customer);
 $stmt_customer->bindValue(':customerId', $customerId, PDO::PARAM_INT);
 $stmt_customer->execute();
@@ -37,28 +37,27 @@ if (!$customer) {
 // Build SQL query for orders
 $sql = "
     SELECT 
-        d.madh AS orderId,
-        DATE_FORMAT(d.ngaytao, '%d/%m/%Y') AS orderDate,
-        COALESCE(SUM(ct.soluong * ct.giabanle), 0) AS total
+        d.MA_DH AS orderId,
+        DATE_FORMAT(d.NGAY_TAO, '%d/%m/%Y') AS orderDate,
+        d.TONG_TIEN AS total
     FROM donhang d
-    LEFT JOIN chitietdonhang ct ON d.madh = ct.madh
-    WHERE d.makh = :customerId AND d.trangthai = 'Đã giao thành công'
+    WHERE d.MA_KH = :customerId AND d.TINH_TRANG = 'Đã giao thành công'
 ";
 
 // Add search filter (by orderId)
 if ($search) {
-    $sql .= " AND d.madh LIKE :search";
+    $sql .= " AND d.MA_DH LIKE :search";
 }
 
 // Add date filters
 if ($start_date) {
-    $sql .= " AND d.ngaytao >= :start_date";
+    $sql .= " AND DATE(d.NGAY_TAO) >= :start_date";
 }
 if ($end_date) {
-    $sql .= " AND d.ngaytao <= :end_date";
+    $sql .= " AND DATE(d.NGAY_TAO) <= :end_date";
 }
 
-$sql .= " GROUP BY d.madh, d.ngaytao";
+$sql .= " GROUP BY d.MA_DH, d.NGAY_TAO";
 
 // Add sorting
 $sql .= $sort_order == 1 ? " ORDER BY total ASC" : " ORDER BY total DESC";
@@ -77,7 +76,7 @@ if ($start_date) {
     $stmt->bindValue(':start_date', $start_date);
 }
 if ($end_date) {
-    $stmt->bindValue(':end_date', $end_date . ' 23:59:59');
+    $stmt->bindValue(':end_date', $end_date);
 }
 $stmt->execute();
 $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -97,7 +96,7 @@ if ($start_date) {
     $stmt_paginated->bindValue(':start_date', $start_date);
 }
 if ($end_date) {
-    $stmt_paginated->bindValue(':end_date', $end_date . ' 23:59:59');
+    $stmt_paginated->bindValue(':end_date', $end_date);
 }
 $stmt_paginated->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt_paginated->bindValue(':items_per_page', $items_per_page, PDO::PARAM_INT);
@@ -283,9 +282,9 @@ $paginated_orders = $stmt_paginated->fetchAll(PDO::FETCH_ASSOC);
                                 <tr>
                                     <td><?php echo htmlspecialchars($order['orderId']); ?></td>
                                     <td><?php echo htmlspecialchars($order['orderDate']); ?></td>
-                                    <td><?php echo number_format($order['total'] * 1, 0, ',', '.'); ?> ₫</td>
+                                    <td><?php echo number_format($order['total'], 0, ',', '.'); ?> ₫</td>
                                     <td class="control">
-                                        <a href="adminthongkehoadon.php?orderId=<?php echo $order['orderId']; ?>" class="btn-detail">
+                                        <a href="adminthongkehoadon.php?madh=<?php echo $order['orderId']; ?>" class="btn-detail">
                                             <i class="fa-regular fa-eye"></i> Chi tiết
                                         </a>
                                     </td>
