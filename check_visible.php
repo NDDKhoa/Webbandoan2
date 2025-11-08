@@ -9,13 +9,19 @@ if (!$conn) {
 if (isset($_POST['id'])) {
     $id = mysqli_real_escape_string($conn, $_POST['id']);
     
-    // Kiểm tra giá trị Visible
-    $sql = "SELECT Visible FROM sanpham WHERE ID = '$id'";
+    // Kiểm tra trạng thái TINH_TRANG của sản phẩm
+    $sql = "SELECT TINH_TRANG FROM sanpham WHERE MA_SP = '$id'";
     $result = mysqli_query($conn, $sql);
     
     if ($result && mysqli_num_rows($result) > 0) {
         $row = mysqli_fetch_assoc($result);
-        echo $row['Visible'] == 1 ? "visible" : "hidden";
+        if ($row['TINH_TRANG'] == 1) {
+            echo "visible"; // đang hiển thị
+        } elseif ($row['TINH_TRANG'] == 0) {
+            echo "hidden"; // đã ẩn
+        } else {
+            echo "deleted"; // -1: đã xóa vĩnh viễn
+        }
     } else {
         echo "error: Không tìm thấy sản phẩm";
     }

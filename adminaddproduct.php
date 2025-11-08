@@ -113,13 +113,13 @@
                             <div class="inner-select">
                                 <label for="select">Chọn món</label>
                                 <select name="Type" id="select">
-                                    <option value="món chay">Món chay</option>
-                                    <option value="món mặn">Món mặn</option>
-                                    <option value="món lẩu">Món lẩu</option>
-                                    <option value="món ăn vặt">Món ăn vặt</option>
-                                    <option value="món tráng miệng">Món tráng miệng</option>
-                                    <option value="nước uống">Nước uống</option>
-                                    <option value="hải sản">Hải sản</option>
+                                    <option value="L001">Món chay</option>
+                                    <option value="L002">Món mặn</option>
+                                    <option value="L003">Món lẩu</option>
+                                    <option value="L004">Món ăn vặt</option>
+                                    <option value="L005">Món tráng miệng</option>
+                                    <option value="L006">Nước uống</option>
+                                    <option value="L007">Hải sản</option>
                                 </select>
                             </div>
                             <div class="form-group">

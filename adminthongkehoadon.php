@@ -3,50 +3,50 @@ session_start();
 
 // Database connection
 try {
-    $pdo = new PDO("mysql:host=127.0.0.1;dbname=webbandoan2;zcharset=utf8", "root", "");
+    $pdo = new PDO("mysql:host=127.0.0.1;dbname=webbandoan5;charset=utf8", "root", "");
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
     die("Connection failed: " . $e->getMessage());
 }
 
-// Get orderId from URL
-$orderId = isset($_GET['orderId']) ? (int)$_GET['orderId'] : 0;
+// Get MA_DH from URL
+$MA_DH = isset($_GET['madh']) ? (int)$_GET['madh'] : 0;
 
 // Fetch order details
 $sql_order = "
     SELECT 
-        d.madh AS orderId,
-        d.makh AS customerId,
-        DATE_FORMAT(d.ngaytao, '%d/%m/%Y') AS orderDate,
-        d.tongtien,
-        d.phuongthuc AS paymentMethod,
-        d.ghichu AS note,
-        d.diachi AS address,
-        k.tenkh AS customerName,
-        k.sodienthoai AS phone,
-        d.trangthai AS shippingStatus
+        d.MA_DH AS orderId,
+        d.MA_KH AS customerId,
+        DATE_FORMAT(d.NGAY_TAO, '%d/%m/%Y') AS orderDate,
+        d.TONG_TIEN,
+        d.PHUONG_THUC AS paymentMethod,
+        d.GHI_CHU AS note,
+        d.DIA_CHI AS address,
+        k.TEN_KH AS customerName,
+        k.SO_DIEN_THOAI AS phone,
+        d.TINH_TRANG AS shippingStatus
     FROM donhang d
-    JOIN khachhang k ON d.makh = k.makh
-    WHERE d.madh = :orderId AND d.trangthai = 'Đã giao thành công'
+    JOIN khachhang k ON d.MA_KH = k.MA_KH
+    WHERE d.MA_DH = :MA_DH AND d.TINH_TRANG = 'Đã giao thành công'
 ";
 $stmt_order = $pdo->prepare($sql_order);
-$stmt_order->bindValue(':orderId', $orderId, PDO::PARAM_INT);
+$stmt_order->bindValue(':MA_DH', $MA_DH, PDO::PARAM_INT);
 $stmt_order->execute();
 $order = $stmt_order->fetch(PDO::FETCH_ASSOC);
 
 // Fetch order items
 $sql_items = "
     SELECT 
-        s.Name AS product,
-        s.Image AS image,
-        ct.soluong AS quantity,
-        ct.giabanle AS price
-    FROM chitietdonhang ct
-    JOIN sanpham s ON ct.masp = s.ID
-    WHERE ct.madh = :orderId
+        s.TEN_SP AS product,
+        s.HINH_ANH AS image,
+        ct.SO_LUONG AS quantity,
+        s.GIA_CA AS price
+    FROM chitietgiohang ct
+    JOIN sanpham s ON ct.MA_SP = s.MA_SP
+    WHERE ct.MA_GH = :MA_DH
 ";
 $stmt_items = $pdo->prepare($sql_items);
-$stmt_items->bindValue(':orderId', $orderId, PDO::PARAM_INT);
+$stmt_items->bindValue(':MA_DH', $MA_DH, PDO::PARAM_INT);
 $stmt_items->execute();
 $items = $stmt_items->fetchAll(PDO::FETCH_ASSOC);
 
@@ -54,7 +54,7 @@ $items = $stmt_items->fetchAll(PDO::FETCH_ASSOC);
 $itemCount = array_sum(array_column($items, 'quantity'));
 $subtotal = array_sum(array_map(function($item) { return $item['quantity'] * $item['price']; }, $items));
 $shippingCost = 0; // Fixed shipping cost set to 0
-$total = ($subtotal * 1) + $shippingCost;
+$total = $subtotal + $shippingCost;
 ?>
 
 <!DOCTYPE html>
@@ -234,13 +234,13 @@ $total = ($subtotal * 1) + $shippingCost;
                                             <div class="inner-sl">x<?php echo $item['quantity']; ?></div>
                                         </div>
                                     </div>
-                                    <div class="inner-gia"><?php echo number_format($item['quantity'] * $item['price'] * 1, 0, ',', '.'); ?> ₫</div>
+                                    <div class="inner-gia"><?php echo number_format($item['quantity'] * $item['price'], 0, ',', '.'); ?> ₫</div>
                                 </div>
                             <?php endforeach; ?>
                             <div class="inner-tonggia">
                                 <div class="inner-tien">
                                     <div class="inner-th">Tiền hàng <span><?php echo $itemCount; ?> món</span></div>
-                                    <div class="inner-st"><?php echo number_format($subtotal * 1, 0, ',', '.'); ?> ₫</div>
+                                    <div class="inner-st"><?php echo number_format($subtotal, 0, ',', '.'); ?> ₫</div>
                                 </div>
                                 <div class="inner-vanchuyen">
                                     <span class="inner-vc1">Vận chuyển</span>

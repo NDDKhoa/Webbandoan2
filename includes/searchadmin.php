@@ -10,79 +10,47 @@ if ($conn->connect_error) {
     die(json_encode(["error" => "Kết nối thất bại: " . $conn->connect_error]));
 }
 
-// Nhận dữ liệu từ request
 $search = isset($_POST["search"]) ? trim($_POST["search"]) : '';
 $category = isset($_POST["category"]) ? trim($_POST["category"]) : '';
-$min_price_raw = isset($_POST["min_price"]) ? $_POST["min_price"] : '';
-$max_price_raw = isset($_POST["max_price"]) ? $_POST["max_price"] : '';
-
-// Xử lý định dạng: loại bỏ dấu . và 3 số 0 cuối, sau đó ép kiểu số
-function clean_price($raw_price) {
-    $numeric = str_replace('.', '', $raw_price); // Bỏ dấu chấm
-    $trimmed = preg_replace('/000$/', '', $numeric); // Bỏ 3 số 0 cuối nếu có
-    return is_numeric($trimmed) ? (int)$trimmed : null;
-}
-
-$min_price = clean_price($min_price_raw);
-$max_price = clean_price($max_price_raw);
-$sort_order = filter_input(INPUT_POST, "sort_order", FILTER_VALIDATE_INT);
 $page = isset($_POST["page"]) ? (int)$_POST["page"] : 1;
-$limit = 12; // Số sản phẩm mỗi trang
+$limit = 12;
 $offset = ($page - 1) * $limit;
 
-// Chuẩn bị truy vấn SQL
-$sql = "SELECT * FROM sanpham";
+// ✅ JOIN loaisp để lấy tên loại
+$sql = "SELECT sanpham.*, loaisp.TEN_LOAISP 
+        FROM sanpham 
+        JOIN loaisp ON sanpham.MA_LOAISP = loaisp.MA_LOAISP 
+        WHERE sanpham.TINH_TRANG != -1";
+
 $conditions = [];
 $params = [];
 $types = "";
 
 // Tìm kiếm theo tên
 if (!empty($search)) {
-    $conditions[] = "(Name LIKE ?)";
+    $conditions[] = "sanpham.TEN_SP LIKE ?";
     $params[] = "%$search%";
     $types .= "s";
 }
 
-// Lọc theo danh mục
+// Lọc theo loại
 if (!empty($category) && $category !== "Tất cả") {
-    $conditions[] = "Type = ?";
+    $conditions[] = "sanpham.MA_LOAISP = ?";
     $params[] = $category;
     $types .= "s";
 }
 
-// Lọc theo giá
-if ($min_price !== false && $min_price !== null) {
-    $conditions[] = "Price >= ?";
-    $params[] = $min_price;
-    $types .= "d";
-}
-if ($max_price !== false && $max_price !== null) {
-    $conditions[] = "Price <= ?";
-    $params[] = $max_price;
-    $types .= "d";
-}
-
-// Ghép điều kiện vào SQL
+// Gắn điều kiện
 if (!empty($conditions)) {
-    $sql .= " WHERE " . implode(" AND ", $conditions);
+    $sql .= " AND " . implode(" AND ", $conditions);
 }
 
-// Sắp xếp theo giá
-if ($sort_order == 1) {
-    $sql .= " ORDER BY Price ASC";
-} elseif ($sort_order == 2) {
-    $sql .= " ORDER BY Price DESC";
-}
-
-// Tính tổng số sản phẩm
-$total_sql = str_replace("SELECT *", "SELECT COUNT(*) as total", $sql);
+// Đếm tổng số sản phẩm
+$total_sql = str_replace("SELECT sanpham.*, loaisp.TEN_LOAISP", "SELECT COUNT(*) AS total", $sql);
 $total_stmt = $conn->prepare($total_sql);
-if (!empty($params)) {
-    $total_stmt->bind_param($types, ...$params);
-}
+if (!empty($params)) $total_stmt->bind_param($types, ...$params);
 $total_stmt->execute();
-$total_result = $total_stmt->get_result()->fetch_assoc();
-$total_products = $total_result['total'];
+$total_products = $total_stmt->get_result()->fetch_assoc()["total"];
 $total_pages = ceil($total_products / $limit);
 $total_stmt->close();
 
@@ -92,22 +60,28 @@ $params[] = $limit;
 $params[] = $offset;
 $types .= "ii";
 
-// Chuẩn bị và thực thi truy vấn
+// Thực thi truy vấn chính
 $stmt = $conn->prepare($sql);
 if (!$stmt) {
     die(json_encode(["error" => "Lỗi truy vấn: " . $conn->error]));
 }
-$stmt->bind_param($types, ...$params);
+if (!empty($params)) $stmt->bind_param($types, ...$params);
 $stmt->execute();
 $result = $stmt->get_result();
-$products = [];
 
+$products = [];
 while ($row = $result->fetch_assoc()) {
-    $row["Image"] = "http://localhost/Webbandoan2/" . str_replace("\\", "/", $row["Image"]);
-    $products[] = $row;
+    $products[] = [
+        "MA_SP" => $row["MA_SP"],
+        "TEN_SP" => $row["TEN_SP"],
+        "MO_TA" => $row["MO_TA"],
+        "LOAI" => $row["TEN_LOAISP"], // ✅ giờ có dữ liệu đúng
+        "HINH_ANH" => "http://localhost/Webbandoan2/" . str_replace("\\", "/", $row["HINH_ANH"]),
+        "TINH_TRANG" => (int)$row["TINH_TRANG"],
+        "GIA_BAN" => (int)$row["GIA_CA"],
+    ];
 }
 
-// Trả về JSON hợp lệ
 echo json_encode([
     "products" => $products,
     "total_pages" => $total_pages

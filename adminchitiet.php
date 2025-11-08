@@ -32,27 +32,32 @@
       <?php
     include_once "./connect.php"; // Kết nối database
 
-    // Lấy madh từ URL
-    $madh = isset($_GET['madh']) ? intval($_GET['madh']) : 0;
+    // Lấy MA_DH từ URL
+    $MA_DH = isset($_GET['madh']) ? intval($_GET['madh']) : 0;
 
     // Truy vấn chi tiết đơn hàng
+    // Lưu ý: Cơ sở dữ liệu không có bảng chitietdonhang, nhưng giả định tồn tại tương tự chitietgiohang và điều chỉnh tên cột.
+    // Nếu cần, thêm bảng chitietdonhang với cấu trúc tương tự: MA_CTDH, MA_DH, MA_SP, SO_LUONG, GIA_BAN_LE (thêm nếu cần).
+    // Ở đây, sử dụng chitietgiohang và giả định MA_GH tương đương MA_DH cho mục đích liên kết (có thể cần điều chỉnh database).
+    // Để khớp, thay chitietdonhang bằng chitietgiohang, mactdh bằng MA_GH (nhưng không có), masp bằng MA_SP, soluong bằng SO_LUONG, giabanle bằng sp.GIA_CA (giá từ sanpham vì không có giabanle).
+    // Giả định MA_GH = MA_DH cho liên kết tạm thời.
     $sql = "
         SELECT 
-            ctdh.mactdh, ctdh.masp, ctdh.soluong, ctdh.giabanle, 
-            sp.Name AS ten_sanpham, sp.Image AS anh_sanpham,
-            dh.ngaytao, dh.phuongthuc, dh.ghichu, dh.trangthai, dh.tongtien AS tongtien_dh,
-            kh.tenkh, kh.sodienthoai, kh.diachi
-        FROM chitietdonhang ctdh
-        JOIN sanpham sp ON ctdh.masp = sp.ID
-        JOIN donhang dh ON ctdh.madh = dh.madh
-        JOIN khachhang kh ON dh.makh = kh.makh
-        WHERE ctdh.madh = ?
+            ctgh.MA_GH AS mactdh, ctgh.MA_SP AS masp, ctgh.SO_LUONG AS soluong, sp.GIA_CA AS giabanle, 
+            sp.TEN_SP AS ten_sanpham, sp.HINH_ANH AS anh_sanpham,
+            dh.NGAY_TAO, dh.PHUONG_THUC, dh.GHI_CHU, dh.TINH_TRANG, dh.TONG_TIEN AS tongtien_dh,
+            kh.TEN_KH, kh.SO_DIEN_THOAI, dh.DIA_CHI
+        FROM chitietgiohang ctgh
+        JOIN sanpham sp ON ctgh.MA_SP = sp.MA_SP
+        JOIN donhang dh ON ctgh.MA_GH = dh.MA_DH  -- Giả định liên kết MA_GH = MA_DH (cần điều chỉnh nếu khác)
+        JOIN khachhang kh ON dh.MA_KH = kh.MA_KH
+        WHERE ctgh.MA_GH = ?
     ";
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
       die("Lỗi prepare SQL: " . $conn->error);
   }
-    $stmt->bind_param("i", $madh);
+    $stmt->bind_param("i", $MA_DH);
     $stmt->execute();
     $result = $stmt->get_result();
 
@@ -211,27 +216,27 @@
                                 <?php if ($order_info): ?>
                                     <div class="inner-pt">
                                         <div class="inner-cachthuc"><i class="fa-regular fa-calendar-days"></i> Ngày đặt hàng</div>
-                                        <div class="inner-ketqua"><?php echo date('d/m/Y', strtotime($order_info['ngaytao'])); ?></div>
+                                        <div class="inner-ketqua"><?php echo date('d/m/Y', strtotime($order_info['NGAY_TAO'])); ?></div>
                                     </div>
                                     <div class="inner-pt">
                                         <div class="inner-cachthuc"><i class="fa-regular fa-credit-card"></i> PT thanh toán</div>
-                                        <div class="inner-ketqua"><?php echo htmlspecialchars($order_info['phuongthuc'] ?: 'Không xác định'); ?></div>
+                                        <div class="inner-ketqua"><?php echo htmlspecialchars($order_info['PHUONG_THUC'] ?: 'Không xác định'); ?></div>
                                     </div>
                                     <div class="inner-pt">
                                         <div class="inner-cachthuc"><i class="fa-solid fa-person"></i> Người nhận</div>
-                                        <div class="inner-ketqua"><?php echo htmlspecialchars($order_info['tenkh'] ?: 'Không xác định'); ?></div>
+                                        <div class="inner-ketqua"><?php echo htmlspecialchars($order_info['TEN_KH'] ?: 'Không xác định'); ?></div>
                                     </div>
                                     <div class="inner-pt">
                                         <div class="inner-cachthuc"><i class="fa-solid fa-phone"></i> Số điện thoại</div>
-                                        <div class="inner-ketqua"><?php echo htmlspecialchars($order_info['sodienthoai'] ?: 'Không xác định'); ?></div>
+                                        <div class="inner-ketqua"><?php echo htmlspecialchars($order_info['SO_DIEN_THOAI'] ?: 'Không xác định'); ?></div>
                                     </div>
                                     <div class="inner-diachi">
                                         <div class="inner-cachthuc"><i class="fa-solid fa-location-dot"></i> Địa chỉ nhận</div>
-                                        <p class="inner-desc"><?php echo htmlspecialchars($order_info['diachi'] ?: 'Không xác định'); ?></p>
+                                        <p class="inner-desc"><?php echo htmlspecialchars($order_info['DIA_CHI'] ?: 'Không xác định'); ?></p>
                                     </div>
                                     <div class="inner-diachi">
                                         <div class="inner-cachthuc"><i class="fa-light fa-note-sticky"></i> Ghi chú</div>
-                                        <p class="inner-desc"><?php echo htmlspecialchars($order_info['ghichu'] ?: ''); ?></p>
+                                        <p class="inner-desc"><?php echo htmlspecialchars($order_info['GHI_CHU'] ?: ''); ?></p>
                                     </div>
                                 <?php else: ?>
                                     <p>Không tìm thấy thông tin đơn hàng.</p>
@@ -246,7 +251,7 @@
                                             </div>
                                         <div class="inner-vanchuyen">
                                             <span class="inner-vc1">Vận chuyển</span>
-                                            <span class="inner-vc2"><?php echo $phi_van_chuyen ; ?>₫</span>
+                                            <span class="inner-vc2"><?php echo number_format($phi_van_chuyen, 0, ',', '.'); ?>₫</span>
                                         </div>
                                         <div class="inner-tonggia">
                                             <div class="inner-giaca">
@@ -257,7 +262,7 @@
                                           <label for="select">Trạng thái</label>
                                           <select name="trangthai" id="select">
                                               <?php
-                                              $currentStatus = $order_info['trangthai'];
+                                              $currentStatus = $order_info['TINH_TRANG'];
 
                                               if ($currentStatus == 'Chưa xác nhận') {
                                                   echo '<option value="Chưa xác nhận" selected>Chưa xác nhận</option>';
@@ -277,7 +282,7 @@
 
                                         </div>
                                         <div class="inner-capnhat">
-                                            <button onclick="updateOrder(<?php echo $madh; ?>)" class="inner-nut">
+                                            <button onclick="updateOrder(<?php echo $MA_DH; ?>)" class="inner-nut">
                                                 <i class="fa-regular fa-floppy-disk"></i> Cập nhật trạng thái
                                             </button>
                                         </div>
@@ -299,12 +304,12 @@
     <script src="admin/js/popper.js"></script>
     <script src="assets/js/admin.js"></script>
     <script>
-        function updateOrder(madh) {
-            const trangthai = document.getElementById('select').value;
+        function updateOrder(MA_DH) {
+            const TINH_TRANG = document.getElementById('select').value;
             $.ajax({
                 url: 'update_status.php',
                 type: 'POST',
-                data: { madh: madh, trangthai: trangthai },
+                data: { MA_DH: MA_DH, TINH_TRANG: TINH_TRANG },
                 success: function(response) {
                     if (response === 'success') {
                         window.location.href = 'adminorder.php';

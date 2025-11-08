@@ -3,7 +3,7 @@ include "connect.php";
 
 if (isset($_GET['id'])) {
     $id = intval($_GET['id']);
-    $sql = "SELECT * FROM sanpham WHERE ID = ?";
+    $sql = "SELECT * FROM sanpham WHERE MA_SP = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $id);
     $stmt->execute();
@@ -118,7 +118,7 @@ if (isset($_GET['id'])) {
                         <form action="updateproduct.php" method="POST" enctype="multipart/form-data">
                             <div class="inner-item">
                                 <div class="inner-img">
-                                    <img id="preview" src="<?php echo htmlspecialchars($row['Image']); ?>" />
+                                    <img id="preview" src="<?php echo htmlspecialchars($row['HINH_ANH']); ?>" />
                                 </div>
                                 <div class="inner-choose">
                                     <label for="choose">
@@ -132,34 +132,34 @@ if (isset($_GET['id'])) {
                         <div class="inner-item">
                             <div class="form-group">
                                 <label for="name">Tên món</label>
-                                <input type="text" id="name" name="Name" class="form-control" placeholder="Nhập tên món" value="<?php echo htmlspecialchars($row['Name']); ?>" required />
+                                <input type="text" id="name" name="Name" class="form-control" placeholder="Nhập tên món" value="<?php echo htmlspecialchars($row['TEN_SP']); ?>" />
                             </div>
                             <div class="inner-select">
                                 <label for="select">Chọn món</label>
                                 <select name="Type" id="select" class="form-control">
-                                    <option value="món chay" <?php echo ($row['Type'] == 'món chay') ? 'selected' : ''; ?>>Món chay</option>
-                                    <option value="món mặn" <?php echo ($row['Type'] == 'món mặn') ? 'selected' : ''; ?>>Món mặn</option>
-                                    <option value="món lẩu" <?php echo ($row['Type'] == 'món lẩu') ? 'selected' : ''; ?>>Món lẩu</option>
-                                    <option value="món ăn vặt" <?php echo ($row['Type'] == 'món ăn vặt') ? 'selected' : ''; ?>>Món ăn vặt</option>
-                                    <option value="món tráng miệng" <?php echo ($row['Type'] == 'món tráng miệng') ? 'selected' : ''; ?>>Món tráng miệng</option>
-                                    <option value="nước uống" <?php echo ($row['Type'] == 'nước uống') ? 'selected' : ''; ?>>Nước uống</option>
-                                    <option value="hải sản" <?php echo ($row['Type'] == 'hải sản') ? 'selected' : ''; ?>>Hải sản</option>
+                                    <option value="L001" <?php echo ($row['MA_LOAISP'] == 'L001') ? 'selected' : ''; ?>>Món chay</option>
+                                    <option value="L002" <?php echo ($row['MA_LOAISP'] == 'L002') ? 'selected' : ''; ?>>Món mặn</option>
+                                    <option value="L003" <?php echo ($row['MA_LOAISP'] == 'L003') ? 'selected' : ''; ?>>Món lẩu</option>
+                                    <option value="L004" <?php echo ($row['MA_LOAISP'] == 'L004') ? 'selected' : ''; ?>>Món ăn vặt</option>
+                                    <option value="L005" <?php echo ($row['MA_LOAISP'] == 'L005') ? 'selected' : ''; ?>>Món tráng miệng</option>
+                                    <option value="L006" <?php echo ($row['MA_LOAISP'] == 'L007') ? 'selected' : ''; ?>>Nước uống</option>
+                                    <option value="L007" <?php echo ($row['MA_LOAISP'] == 'L007') ? 'selected' : ''; ?>>Hải sản</option>
                                 </select>
                             </div>
                             <div class="inner-select">
                                 <label for="visible">Trạng thái</label>
                                 <select name="Visible" id="visible" class="form-control">
-                                    <option value="1" <?php echo ($row['Visible'] == '1') ? 'selected' : ''; ?>>Đang kinh doanh</option>
-                                    <option value="0" <?php echo ($row['Visible'] == '0') ? 'selected' : ''; ?>>Ngừng kinh doanh</option>
+                                    <option value="1" <?php echo ($row['TINH_TRANG'] == 1) ? 'selected' : ''; ?>>Đang kinh doanh</option>
+                                    <option value="0" <?php echo ($row['TINH_TRANG'] == 0) ? 'selected' : ''; ?>>Ngừng kinh doanh</option>
                                 </select>
                             </div>
                             <div class="form-group">
                                 <label for="sell">Giá bán</label>
-                                <input type="text" id="sell" name="Price" class="form-control" placeholder="Nhập giá bán" value="<?php echo htmlspecialchars(number_format($row['Price'], 0, ',', '.')); ?>" required />
+                                <input type="text" id="sell" name="Price" class="form-control" placeholder="Nhập giá bán" value="<?php echo htmlspecialchars(number_format($row['GIA_CA'], 0, ',', '.')); ?>" />
                             </div>
                             <div class="form-group">
                                 <label for="desc">Mô tả</label>
-                                <textarea name="Describtion" id="desc" class="form-control" placeholder="Nhập mô tả món ăn..." required><?php echo htmlspecialchars($row['Describtion']); ?></textarea>
+                                <textarea class="form-control" placeholder="Nhập mô tả món ăn..." name="Describtion"><?php echo htmlspecialchars($row['MO_TA']); ?></textarea>
                             </div>
                             <input type="hidden" name="id" value="<?php echo $id; ?>" />
                             <div class="inner-add">

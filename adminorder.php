@@ -118,24 +118,24 @@ $total_orders = $total_row['total'];
 $total_pages = ceil($total_orders / $limit);
 
 // Truy vấn với giới hạn và offset
-$sql = "SELECT dh.madh, dh.makh, dh.ngaytao, dh.tongtien, dh.trangthai, kh.tenkh 
+$sql = "SELECT dh.MA_DH, dh.MA_KH, dh.NGAY_TAO, dh.TONG_TIEN, dh.TINH_TRANG, kh.TEN_KH 
         FROM donhang dh 
-        JOIN khachhang kh ON dh.makh = kh.makh 
-        ORDER BY dh.ngaytao DESC 
+        JOIN khachhang kh ON dh.MA_KH = kh.MA_KH 
+        ORDER BY dh.NGAY_TAO DESC 
         LIMIT $start, $limit";
 $result = mysqli_query($conn, $sql);
 
 if (mysqli_num_rows($result) > 0) {
     while ($row = mysqli_fetch_assoc($result)) {
-        $madh = "DH" . $row['madh'];
-        $ngaydat = date('d/m/Y', strtotime($row['ngaytao']));
+        $madh = "DH" . $row['MA_DH'];
+        $ngaydat = date('d/m/Y', strtotime($row['NGAY_TAO']));
         
         // CÁCH FORMAT TIỀN CHUẨN
-        $tongtien = (int) $row['tongtien']; 
+        $tongtien = (int) $row['TONG_TIEN']; 
         $tongtien1 = number_format($tongtien, 0, ',', '.') . " ₫"; 
 
         $status_class = '';
-        switch ($row['trangthai']) {
+        switch ($row['TINH_TRANG']) {
             case 'Chưa xác nhận':
                 $status_class = 'status-no-complete';
                 break;
@@ -152,12 +152,12 @@ if (mysqli_num_rows($result) > 0) {
 ?>
 <tr>
     <td><?= $madh; ?></td>
-    <td><?= htmlspecialchars($row['tenkh']); ?></td>
+    <td><?= htmlspecialchars($row['TEN_KH']); ?></td>
     <td><?= $ngaydat; ?></td>
     <td><?= $tongtien1; ?></td>
-    <td><span class="<?= $status_class; ?>"><?= $row['trangthai']; ?></span></td>
+    <td><span class="<?= $status_class; ?>"><?= $row['TINH_TRANG']; ?></span></td>
     <td class="control">
-        <a href="adminchitiet.php?madh=<?= $row['madh']; ?>" class="btn-detail">
+        <a href="adminchitiet.php?madh=<?= $row['MA_DH']; ?>" class="btn-detail">
             <i class="fa-regular fa-eye"></i> Chi tiết
         </a>
     </td>

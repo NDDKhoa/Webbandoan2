@@ -8,32 +8,36 @@ if (!$conn) {
 
 if (isset($_POST['id'])) {
     $id = mysqli_real_escape_string($conn, $_POST['id']);
-    
-    // Kiểm tra giá trị Visible
-    $check_sql = "SELECT Visible FROM sanpham WHERE ID = '$id'";
+    $action = isset($_POST['action']) ? $_POST['action'] : '';
+
+    // Kiểm tra trạng thái hiện tại của sản phẩm
+    $check_sql = "SELECT TINH_TRANG FROM sanpham WHERE MA_SP = '$id'";
     $check_result = mysqli_query($conn, $check_sql);
-    
+
     if ($check_result && mysqli_num_rows($check_result) > 0) {
         $row = mysqli_fetch_assoc($check_result);
-        $visible = $row['Visible'];
+        $status = $row['TINH_TRANG'];
 
-        if ($visible == 1) {
-            // Cập nhật Visible = 0
-            $update_sql = "UPDATE sanpham SET Visible = 0 WHERE ID = '$id'";
+        if ($action === 'hide' && $status == 1) {
+            // Ẩn sản phẩm (TINH_TRANG = 0)
+            $update_sql = "UPDATE sanpham SET TINH_TRANG = 0 WHERE MA_SP = '$id'";
             if (mysqli_query($conn, $update_sql)) {
                 echo "success";
             } else {
                 echo "error: " . mysqli_error($conn);
             }
+
+        } elseif ($action === 'delete' && $status == 0) {
+            // Xóa vĩnh viễn sản phẩm (TINH_TRANG = -1)
+            $update_sql = "UPDATE sanpham SET TINH_TRANG = -1 WHERE MA_SP = '$id'";
+            if (mysqli_query($conn, $update_sql)) {
+                echo "success";
+            } else {
+                echo "error: " . mysqli_error($conn);
+            }
+
         } else {
-            // Ẩn sản phẩm (chỉ cập nhật Visible thành -1)
-            $update_sql = "UPDATE sanpham SET Visible = -1 WHERE ID = '$id'";
-            if (mysqli_query($conn, $update_sql)) {
-                echo "success";
-            } else {
-                echo "error: " . mysqli_error($conn);
-            }
-
+            echo "error: Hành động không hợp lệ hoặc trạng thái không khớp.";
         }
     } else {
         echo "error: Không tìm thấy sản phẩm";
