@@ -130,29 +130,51 @@
                             include "connect.php";
                             if (isset($_SESSION['makh'])) {
                                 $makh = $_SESSION['makh'];
-                                $sql = "SELECT g.soluong, sp.Name, sp.Image, sp.Price FROM giohang g JOIN sanpham sp ON g.masp = sp.ID WHERE g.makh = ?";
-                                $stmt = $conn->prepare($sql);
-                                $stmt->bind_param("i", $makh);
-                                $stmt->execute();
-                                $result = $stmt->get_result();
-                                while ($row = $result->fetch_assoc()) {
-                                    $ten = htmlspecialchars($row['Name']);
-                                    $soluong = $row['soluong'];
-                                    $gia = number_format($row['Price'], 0, ',', '.') . "đ";
-                                    $hinhanh = htmlspecialchars($row['Image']);
-                                    echo '
-                                    <div class="inner-gth">
-                                        <div class="inner-img">
-                                            <img src="' . $hinhanh . '" alt="' . $ten . '" />
-                                        </div>
-                                        <div class="inner-mota">
-                                            <div class="inner-ten">' . $ten . '</div>
-                                            <div class="inner-sl">Số lượng: ' . $soluong . '</div>
-                                            <div class="inner-gia">' . $gia . '</div>
-                                        </div>
-                                    </div>';
+
+                                // Lấy MA_GH hiện tại
+                                $sql_gh = "SELECT MA_GH FROM giohang WHERE MA_KH = ? ORDER BY MA_GH DESC LIMIT 1";
+                                $stmt_gh = $conn->prepare($sql_gh);
+                                $stmt_gh->bind_param("i", $makh);
+                                $stmt_gh->execute();
+                                $result_gh = $stmt_gh->get_result();
+                                $giohang = $result_gh->fetch_assoc();
+                                $stmt_gh->close();
+
+                                if ($giohang) {
+                                    $ma_gh = $giohang['MA_GH'];
+
+                                    // Lấy chi tiết giỏ hàng
+                                    $sql = "
+                                        SELECT ct.SO_LUONG AS soluong, sp.TEN_SP AS Name, sp.HINH_ANH AS Image, sp.GIA_CA AS Price
+                                        FROM chitietgiohang ct
+                                        JOIN sanpham sp ON ct.MA_SP = sp.MA_SP
+                                        WHERE ct.MA_GH = ?
+                                    ";
+                                    $stmt = $conn->prepare($sql);
+                                    $stmt->bind_param("i", $ma_gh);
+                                    $stmt->execute();
+                                    $result = $stmt->get_result();
+                                    while ($row = $result->fetch_assoc()) {
+                                        $ten = htmlspecialchars($row['Name']);
+                                        $soluong = $row['soluong'];
+                                        $gia = number_format($row['Price'], 0, ',', '.') . "đ";
+                                        $hinhanh = htmlspecialchars($row['Image']);
+                                        echo '
+                                        <div class="inner-gth">
+                                            <div class="inner-img">
+                                                <img src="' . $hinhanh . '" alt="' . $ten . '" />
+                                            </div>
+                                            <div class="inner-mota">
+                                                <div class="inner-ten">' . $ten . '</div>
+                                                <div class="inner-sl">Số lượng: ' . $soluong . '</div>
+                                                <div class="inner-gia">' . $gia . '</div>
+                                            </div>
+                                        </div>';
+                                    }
+                                    $stmt->close();
+                                } else {
+                                    echo '<p class="text-danger">Giỏ hàng trống.</p>';
                                 }
-                                $stmt->close();
                             } else {
                                 echo '<p class="text-danger">Vui lòng đăng nhập để xem giỏ hàng.</p>';
                             }
@@ -166,7 +188,7 @@
                                 <?php
                                 if (isset($_SESSION['makh'])) {
                                     $makh = $_SESSION['makh'];
-                                    $sql = "SELECT tenkh, diachi, sodienthoai FROM khachhang WHERE makh = ?";
+                                    $sql = "SELECT TEN_KH AS tenkh, DIA_CHI AS diachi, SO_DIEN_THOAI AS sodienthoai FROM khachhang WHERE MA_KH = ?";
                                     $stmt = $conn->prepare($sql);
                                     $stmt->bind_param("i", $makh);
                                     $stmt->execute();
@@ -232,36 +254,58 @@
                         <?php
                         if (isset($_SESSION['makh'])) {
                             $makh = $_SESSION['makh'];
-                            $sql1 = "SELECT SUM(soluong) AS tong_mon, SUM(tongtien) AS tong_tien FROM giohang WHERE makh = ?";
-                            $stmt1 = $conn->prepare($sql1);
-                            $stmt1->bind_param("i", $makh);
-                            $stmt1->execute();
-                            $result1 = $stmt1->get_result();
-                            if ($row1 = $result1->fetch_assoc()) {
-                                $tong_mon = $row1['tong_mon'] ?? 0;
-                                $tien_so = $row1['tong_tien'] ?? 0;
-                                $tong_tien = number_format($tien_so, 0, ',', '.') . "đ";
-                                echo '
-                                <div class="inner-item">
-                                    <div class="inner-tien">
-                                        <div class="inner-th">Tiền hàng <span>' . $tong_mon . ' món</span></div>
-                                        <div class="inner-st">' . $tong_tien . '</div>
-                                        <input type="hidden" name="tongtien" value="' . $tien_so . '" />
-                                    </div>
-                                      <div class="inner-tien">
-                                      <div class="inner-pvc">Phí vận chuyển</div>
-                                      <div class="inner-st">0₫</div>
-                                    </div>
-                                    <div class="inner-tientong">
-                                        <div class="inner-tong">Tổng tiền</div>
-                                        <div class="inner-total">' . $tong_tien . '</div>
-                                    </div>
-                                    <button type="submit" class="button" name="thanhtoan">Thanh toán</button>
-                                </div>';
+
+                            // Lấy MA_GH
+                            $sql_gh = "SELECT MA_GH FROM giohang WHERE MA_KH = ? ORDER BY MA_GH DESC LIMIT 1";
+                            $stmt_gh = $conn->prepare($sql_gh);
+                            $stmt_gh->bind_param("i", $makh);
+                            $stmt_gh->execute();
+                            $result_gh = $stmt_gh->get_result();
+                            $giohang = $result_gh->fetch_assoc();
+                            $stmt_gh->close();
+
+                            if ($giohang) {
+                                $ma_gh = $giohang['MA_GH'];
+
+                                // Tính tổng
+                                $sql1 = "
+                                    SELECT COUNT(DISTINCT ct.MA_SP) AS tong_mon, SUM(ct.SO_LUONG * sp.GIA_CA) AS tong_tien
+                                    FROM chitietgiohang ct
+                                    JOIN sanpham sp ON ct.MA_SP = sp.MA_SP
+                                    WHERE ct.MA_GH = ?
+                                ";
+                                $stmt1 = $conn->prepare($sql1);
+                                $stmt1->bind_param("i", $ma_gh);
+                                $stmt1->execute();
+                                $result1 = $stmt1->get_result();
+                                if ($row1 = $result1->fetch_assoc()) {
+                                    $tong_mon = $row1['tong_mon'] ?? 0;
+                                    $tien_so = $row1['tong_tien'] ?? 0;
+                                    $tong_tien = number_format($tien_so, 0, ',', '.') . "đ";
+                                    echo '
+                                    <div class="inner-item">
+                                        <div class="inner-tien">
+                                            <div class="inner-th">Tiền hàng <span>' . $tong_mon . ' món</span></div>
+                                            <div class="inner-st">' . $tong_tien . '</div>
+                                            <input type="hidden" name="tongtien" value="' . $tien_so . '" />
+                                        </div>
+                                          <div class="inner-tien">
+                                          <div class="inner-pvc">Phí vận chuyển</div>
+                                          <div class="inner-st">0₫</div>
+                                        </div>
+                                        <div class="inner-tientong">
+                                            <div class="inner-tong">Tổng tiền</div>
+                                            <div class="inner-total">' . $tong_tien . '</div>
+                                        </div>
+                                        <button type="submit" class="button" name="thanhtoan">Thanh toán</button>
+                                    </div>';
+                                } else {
+                                    echo '<p class="text-danger">Giỏ hàng trống.</p>';
+                                }
+                                $stmt1->close();
                             } else {
                                 echo '<p class="text-danger">Giỏ hàng trống.</p>';
                             }
-                            $stmt1->close();
                         }
                         ?>
                     </div>
@@ -270,85 +314,88 @@
         </div>
     </div>
 
-    <!-- Xử lý thanh toán -->
+    <!-- XỬ LÝ ĐẶT HÀNG -->
     <?php
-    include "connect.php";
-    if (isset($_SESSION['makh']) && isset($_POST['thanhtoan']) && isset($_POST['pttt']) && isset($_POST['tongtien']) && isset($_POST['diachi'])) {
-        $makh = $_SESSION['makh'];
-        $pt = $_POST['pttt'];
-        $tongtien = (int) $_POST['tongtien'];
-        $diachi = mysqli_real_escape_string($conn, $_POST['diachi']);
-        $ghichu = isset($_POST['ghichu']) ? mysqli_real_escape_string($conn, $_POST['ghichu']) : "";
-
-        // Thêm đơn hàng
-        $sql = "INSERT INTO donhang (makh, tongtien, ghichu, diachi, phuongthuc) VALUES (?, ?, ?, ?, ?)";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("iisss", $makh, $tongtien, $ghichu, $diachi, $pt);
-
-        if ($stmt->execute()) {
-            $last_id = $conn->insert_id;
-
-            // Lấy giỏ hàng
-            $sql2 = "SELECT masp, soluong, tongtien FROM giohang WHERE makh = ?";
-            $stmt2 = $conn->prepare($sql2);
-            $stmt2->bind_param("i", $makh);
-            $stmt2->execute();
-            $result2 = $stmt2->get_result();
-
-            while ($row2 = $result2->fetch_assoc()) {
-                $giabanle = $row2['tongtien'] / $row2['soluong'];
-                $sql3 = "INSERT INTO chitietdonhang (madh, masp, soluong, giabanle) VALUES (?, ?, ?, ?)";
-                $stmt3 = $conn->prepare($sql3);
-                $stmt3->bind_param("iiii", $last_id, $row2['masp'], $row2['soluong'], $giabanle);
-                $stmt3->execute();
-                $stmt3->close();
-            }
-
-            // Xóa giỏ hàng
-            $sqlDelete = "DELETE FROM giohang WHERE makh = ?";
-            $stmtDelete = $conn->prepare($sqlDelete);
-            $stmtDelete->bind_param("i", $makh);
-            $stmtDelete->execute();
-            $stmtDelete->close();
-
-            $stmt2->close();
-            $stmt->close();
-
-            // Hiển thị thông báo thành công
-            echo '
-            <script>
-                function showNotification() {
-                    var notification = document.getElementById("success-notification");
-                    notification.classList.add("show");
-                    setTimeout(function() {
-                        notification.classList.remove("show");
-                        setTimeout(function() {
-                            window.location.href = "login.php";
-                        }, 500);
-                    }, 1000);
-                }
-
-                function closeNotification() {
-                    var notification = document.getElementById("success-notification");
-                    notification.classList.remove("show");
-                    setTimeout(function() {
-                        window.location.href = "login.php";
-                    }, 500);
-                }
-
-                showNotification();
-            </script>';
-
-            exit();
-        } else {
-            echo '<div class="container"><p class="text-danger">Lỗi khi thêm đơn hàng: ' . htmlspecialchars($stmt->error) . '</p></div>';
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['thanhtoan'])) {
+        if (!isset($_SESSION['makh'])) {
+            echo '<script>alert("Vui lòng đăng nhập!"); window.location="login.php";</script>';
+            exit;
         }
+
+        $makh = $_SESSION['makh'];
+        $diachi = trim($_POST['diachi']);
+        $ghichu_user = trim($_POST['ghichu'] ?? '');
+        $pttt = $_POST['pttt'];
+
+        // BƯỚC 1: LẤY GIỎ HÀNG & TỔNG TIỀN
+        $sql = "SELECT gh.MA_GH, COALESCE(SUM(ct.SO_LUONG * sp.GIA_CA), 0) AS tong
+            FROM giohang gh
+            LEFT JOIN chitietgiohang ct ON gh.MA_GH = ct.MA_GH
+            LEFT JOIN sanpham sp ON ct.MA_SP = sp.MA_SP
+            WHERE gh.MA_KH = ?
+            GROUP BY gh.MA_GH";
+        $stmt = $conn->prepare($sql);
+        if (!$stmt)
+            die("LỖI SQL: " . $conn->error);
+        $stmt->bind_param("i", $makh);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
         $stmt->close();
+
+        if (!$row || $row['tong'] == 0) {
+            echo '<script>alert("Giỏ hàng trống!"); history.back();</script>';
+            exit;
+        }
+
+        $ma_gh = $row['MA_GH'];
+        $tong_tien = $row['tong'];
+
+        // BƯỚC 2: TẠO ĐƠN HÀNG (CÓ MÃ GIỎ HÀNG)
+        $sql = "INSERT INTO donhang (MA_KH, MA_GH, TONG_TIEN, DIA_CHI, GHI_CHU, PHUONG_THUC, TINH_TRANG)
+        VALUES (?, ?, ?, ?, ?, ?, 'Chưa xác nhận')";
+        $stmt = $conn->prepare($sql);
+        $ghichu = trim($_POST['ghichu'] ?? ''); // Nếu trống thì để trống thật
+        $stmt->bind_param("iiisss", $makh, $ma_gh, $tong_tien, $diachi, $ghichu, $pttt);
+
+        $stmt->execute();
+        $ma_dh = $stmt->insert_id;
+        $stmt->close();
+
+        // BƯỚC 2.1: SAO CHÉP CHI TIẾT GIỎ HÀNG SANG CHI TIẾT ĐƠN HÀNG
+        $sql_copy = "
+        INSERT INTO chitietdonhang (MA_DH, MA_SP, SO_LUONG, GIA_LUC_MUA)
+        SELECT ?, ct.MA_SP, ct.SO_LUONG, sp.GIA_CA
+        FROM chitietgiohang ct
+        JOIN sanpham sp ON ct.MA_SP = sp.MA_SP
+        WHERE ct.MA_GH = ?
+    ";
+        $stmt_copy = $conn->prepare($sql_copy);
+        $stmt_copy->bind_param("ii", $ma_dh, $ma_gh);
+        $stmt_copy->execute();
+        $stmt_copy->close();
+
+        // BƯỚC 3: DỌN GIỎ HÀNG
+        $stmt = $conn->prepare("DELETE FROM chitietgiohang WHERE MA_GH = ?");
+        $stmt->bind_param("i", $ma_gh);
+        $stmt->execute();
+        $stmt->close();
+
+        $stmt = $conn->prepare("DELETE FROM giohang WHERE MA_GH = ?");
+        $stmt->bind_param("i", $ma_gh);
+        $stmt->execute();
+        $stmt->close();
+
+        // HIỂN THỊ THÔNG BÁO THÀNH CÔNG
+        echo '<script>
+        document.getElementById("success-notification").classList.add("show");
+        setTimeout(() => { window.location="login.php"; }, 2000);
+    </script>';
+        exit;
     }
-    $conn->close();
     ?>
 
-    <!-- Footer -->
+
     <?php include "includes/footer.php"; ?>
 
     <!-- Scripts -->

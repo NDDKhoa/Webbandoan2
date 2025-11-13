@@ -97,19 +97,48 @@
         <div class="container">
             <?php
             include 'connect.php';
-            $makh = $_SESSION['makh'];
-            $sql = "
-        SELECT gh.*, sp.Name, sp.Image 
-        FROM giohang gh 
-        JOIN sanpham sp ON gh.masp = sp.ID 
-        WHERE gh.makh = ?
-        ";
-            $stmt = $conn->prepare($sql);
-            $stmt->bind_param("i", $makh);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            $tong = 0;
-            $has_items = $result->num_rows > 0;
+
+            // Kiểm tra đăng nhập
+            if (!isset($_SESSION['makh'])) {
+                header("Location: login.php");
+                exit;
+            }
+
+            $ma_kh = $_SESSION['makh'];
+
+            // Lấy giỏ hàng hiện tại của khách
+            $sql_giohang = "SELECT MA_GH, TONG_TIEN FROM giohang WHERE MA_KH = ? ORDER BY MA_GH DESC LIMIT 1";
+            $stmt_gh = $conn->prepare($sql_giohang);
+            $stmt_gh->bind_param("i", $ma_kh);
+            $stmt_gh->execute();
+            $result_gh = $stmt_gh->get_result();
+            $giohang = $result_gh->fetch_assoc();
+
+            if (!$giohang || $giohang['TONG_TIEN'] == 0) {
+                $has_items = false;
+            } else {
+                $ma_gh = $giohang['MA_GH'];
+
+                // Lấy chi tiết giỏ hàng
+                $sql = "
+                    SELECT 
+                        ct.MA_SP,
+                        ct.SO_LUONG,
+                        sp.TEN_SP AS Name,
+                        sp.HINH_ANH AS Image,
+                        sp.GIA_CA AS dongia,
+                        (ct.SO_LUONG * sp.GIA_CA) AS tongtien
+                    FROM chitietgiohang ct
+                    JOIN sanpham sp ON ct.MA_SP = sp.MA_SP
+                    WHERE ct.MA_GH = ?
+                ";
+                $stmt = $conn->prepare($sql);
+                $stmt->bind_param("i", $ma_gh);
+                $stmt->execute();
+                $result = $stmt->get_result();
+                $has_items = $result->num_rows > 0;
+                $tong = $giohang['TONG_TIEN'];
+            }
 
             if (!$has_items):
                 ?>
@@ -121,7 +150,7 @@
                     </div>
                     <p class="text-muted mb-5">Hãy nhanh tay chọn ngay sản phẩm yêu thích.</p>
                     <div class="contant_box_404">
-                        <a class="link_404" href="login.php" data-discover="true">Buy Now</a>
+                        <a class="link_404" href="login.php" data-discover="true">Mua ngay</a>
                     </div>
                 </div>
             <?php else: ?>
@@ -139,18 +168,18 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php while ($row = $result->fetch_assoc()):
-                                        $tong += $row['tongtien'];
-                                        ?>
-                                        <tr data-id="<?= $row['masp'] ?>">
+                                    <?php while ($row = $result->fetch_assoc()): ?>
+                                        <tr data-id="<?= $row['MA_SP'] ?>">
                                             <td>
                                                 <div class="d-flex align-items-center p-3">
                                                     <div class="w-25 mr-3">
-                                                        <img class="img-fluid rounded" src="<?= $row['Image'] ?>"
-                                                            alt="<?= $row['Name'] ?>">
+                                                        <img class="img-fluid rounded"
+                                                            src="<?= htmlspecialchars($row['Image']) ?>"
+                                                            alt="<?= htmlspecialchars($row['Name']) ?>">
                                                     </div>
                                                     <div>
-                                                        <p class="text-sm text-uppercase mb-1"><?= $row['Name'] ?></p>
+                                                        <p class="text-sm text-uppercase mb-1">
+                                                            <?= htmlspecialchars($row['Name']) ?></p>
                                                         <span
                                                             class="text-sm"><?= number_format($row['dongia'], 0, ',', '.') ?>đ</span>
                                                     </div>
@@ -159,7 +188,7 @@
                                             <td>
                                                 <div class="button-quantity">
                                                     <button type="button" class="btn-reduce">-</button>
-                                                    <input type="number" class="qty" value="<?= $row['soluong'] ?>" min="1">
+                                                    <input type="number" class="qty" value="<?= $row['SO_LUONG'] ?>" min="1">
                                                     <button type="button" class="btn-increment">+</button>
                                                 </div>
                                             </td>
@@ -181,7 +210,7 @@
                         <div class="card bg-cream p-4 mb-4">
                             <h5 class="text-uppercase font-weight-medium text-sm">MIỄN PHÍ VẬN CHUYỂN MỪNG LỄ 30/4 – CHO TẤT
                                 CẢ ĐƠN HÀNG </h5>
-                            <p class="text-sm mt-2">🎉 Chúc mừng! Bạn được miễn phí vận chuyển nhân dịp lễ 30/4!
+                            <p class="text-sm mt-2">Chúc mừng! Bạn được miễn phí vận chuyển nhân dịp lễ 30/4!
                             </p>
                             <div class="bg-success w-100 mt-3"></div>
                         </div>
@@ -190,8 +219,7 @@
                             <p class="mt- DELTA text-sm text-muted">* Giảm giá sẽ được tính và áp dụng khi thanh toán</p>
                             <input class="form-control h-10 mb-4" placeholder="Coupon code" type="text">
                             <p class="font-weight-bold">Total: <?= number_format($tong) ?>đ</p>
-                            <form id="checkout-form"
-                                action="<?php echo isset($_SESSION['makh']) ? 'thanhtoan.php?makh=' . urlencode($_SESSION['makh']) : 'giohang.php'; ?>"
+                            <form id="checkout-form" action="thanhtoan.php?magh=<?= $ma_gh ?>&makh=<?= $ma_kh ?>"
                                 method="post">
                                 <button type="submit" class="btn btn-block mt-4 rounded-pill">Thanh toán</button>
                             </form>
@@ -205,42 +233,43 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         $(document).ready(function () {
+            function updateCart(masp, soluong) {
+                $.post('capnhat_giohang.php', { masp: masp, soluong: soluong }, function (res) {
+                    if (res.status === 'success') {
+                        location.reload();
+                    }
+                }, 'json');
+            }
+
             $('.btn-increment').click(function () {
                 let row = $(this).closest('tr');
                 let input = row.find('.qty');
-                let val = parseInt(input.val()) || 1;
-                let id = row.data('id');
-                $.post('capnhat_giohang.php', { masp: id, soluong: val + 1 }, function () {
-                    location.reload();
-                });
+                let qty = parseInt(input.val()) || 1;
+                qty += 1;
+                input.val(qty);
+                updateCart(row.data('id'), qty);
             });
+
             $('.btn-reduce').click(function () {
                 let row = $(this).closest('tr');
                 let input = row.find('.qty');
-                let val = parseInt(input.val()) || 1;
-                let id = row.data('id');
-                if (val > 1) {
-                    $.post('capnhat_giohang.php', { masp: id, soluong: val - 1 }, function () {
-                        location.reload();
-                    });
-                }
+                let qty = parseInt(input.val()) || 1;
+                if (qty > 1) qty -= 1;
+                input.val(qty);
+                updateCart(row.data('id'), qty);
             });
+
             $('.qty').change(function () {
                 let row = $(this).closest('tr');
-                let id = row.data('id');
-                let qty = $(this).val();
-                if (qty >= 1) {
-                    $.post('capnhat_giohang.php', { masp: id, soluong: qty }, function () {
-                        location.reload();
-                    });
-                }
+                let qty = parseInt($(this).val());
+                if (qty < 1) qty = 1;
+                $(this).val(qty);
+                updateCart(row.data('id'), qty);
             });
+
             $('.remove').click(function () {
                 let row = $(this).closest('tr');
-                let id = row.data('id');
-                $.post('xoa_giohang.php', { masp: id }, function () {
-                    location.reload();
-                });
+                updateCart(row.data('id'), 0);
             });
 
             $('#checkout-form').submit(function (e) {
@@ -249,24 +278,23 @@
                     url: 'checkvisible.php',
                     method: 'POST',
                     dataType: 'json',
-                    success: function (response) {
-                        if (response.status === 'error') {
-                            let message = 'Các sản phẩm sau đã ngừng kinh doanh và cần được xóa khỏi giỏ hàng trước khi thanh toán:\n\n';
-                            response.discontinued.forEach(function (item) {
-                                message += '- ' + item + '\n';
-                            });
-                            alert(message);
+                    success: function (res) {
+                        if (res.status === 'error') {
+                            let msg = 'Các sản phẩm sau đã ngừng kinh doanh:\n\n';
+                            res.discontinued.forEach(item => msg += '- ' + item + '\n');
+                            alert(msg);
                         } else {
                             $('#checkout-form').unbind('submit').submit();
                         }
                     },
                     error: function () {
-                        alert('Đã có lỗi xảy ra khi kiểm tra giỏ hàng. Vui lòng thử lại.');
+                        alert('Lỗi kiểm tra giỏ hàng!');
                     }
                 });
             });
         });
     </script>
+
 </body>
 
 </html>
